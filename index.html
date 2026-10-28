@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Колл-центр</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f131a; color: #e8ecf3; padding: 12px; max-width: 480px; margin: 0 auto; padding-bottom: 30px; }
+  h1 { font-size: 18px; margin-bottom: 8px; text-align: center; font-weight: 600; letter-spacing: 0.5px; }
+
+  /* Элитная заставка (Splash Screen) */
+  #splashScreen {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .splash-bg-glow {
+    position: absolute;
+    width: 250px; height: 250px;
+    background: rgba(56, 189, 248, 0.12);
+    filter: blur(80px);
+    border-radius: 50%;
+  }
+  .splash-card-box {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+    width: 85%;
+    max-width: 340px;
+    background: rgba(24, 29, 40, 0.7);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+    animation: splashPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  @keyframes splashPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .splash-badge {
+    width: 76px; height: 76px;
+    background: linear-gradient(135deg, rgba(56,189,248,0.2), rgba(30,58,138,0.4));
+    border: 2px solid rgba(56, 189, 248, 0.4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+    animation: pulseBadge 2s infinite alternate;
+  }
+  @keyframes pulseBadge {
+    0% { transform: scale(1); box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+    100% { transform: scale(1.06); box-shadow: 0 0 25px rgba(56, 189, 248, 0.5); }
+  }
+  .splash-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  }
+  .splash-subtitle {
+    font-size: 10px;
+    font-weight: 700;
+    color: #38bdf8;
+    letter-spacing: 2.5px;
+    margin-bottom: 24px;
+  }
+  .splash-loader-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .splash-loader-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    border-radius: 3px;
+    animation: loadProgress 1.4s ease-in-out forwards;
+  }
+  @keyframes loadProgress {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+  }
+  .splash-tap-text {
+    font-size: 11px;
+    color: #64748b;
+  }
+  
+  .tabs { display: flex; gap: 4px; margin-bottom: 8px; background: #181d28; padding: 4px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.04); }
+  .tab-btn { flex: 1; padding: 8px 4px; font-size: 12px; border: none; border-radius: 8px; background: transparent; color: #8b94a7; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
+  .tab-btn.active { background: #3b82f6; color: #fff; }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .card { background: #181d28; border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.04); }
+  .scene { padding: 0; overflow: hidden; border-radius: 12px; margin-bottom: 8px; position: relative; background: #181d28; }
+  
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px; }
+  .stat-card { background: #181d28; border-radius: 10px; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.04); }
+  .stat-card.wide { grid-column: span 2; }
+  .stat-label { color: #8b94a7; font-size: 11px; margin-bottom: 2px; }
+  .stat-value { font-size: 15px; font-weight: bold; color: #f0f3f9; }
+  .stat-value.good { color: #3ddc84; }
+  .stat-value.warn { color: #ffb347; }
+  
+  .bar { height: 5px; background: #262d3d; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .fill { height: 100%; transition: width 0.4s; background: #4da3ff; }
+
+  canvas { width: 100%; height: auto; display: block; cursor: pointer; }
+
+  .actions-container { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .actions-container.full { grid-template-columns: 1fr; }
+  
+  button { width: 100%; padding: 10px 12px; font-size: 13px; border: none; border-radius: 10px; background: #262d3d; color: #fff; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity 0.2s; margin-bottom: 6px; }
+  button:active { opacity: 0.7; }
+  button:disabled { opacity: 0.3; cursor: not-allowed; }
+  
+  .btn-primary { background: #3b82f6; color: #fff; }
+  .btn-success { background: #10b981; color: #fff; }
+  .btn-warning { background: #f59e0b; color: #111; }
+  .btn-purple { background: #8b5cf6; color: #fff; }
+  .btn-danger { background: #ef4444; color: #fff; }
+  .btn-office { background: #06b6d4; color: #fff; }
+  .btn-tokyo { background: linear-gradient(135deg, #ec4899, #8b5cf6); color: #fff; }
+  
+  .warn { color: #f59e0b; } .bad { color: #ef4444; } .good { color: #10b981; }
+
+  .op-list { display: flex; flex-direction: column; gap: 6px; }
+  .op { background: #1f2633; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(255,255,255,0.03); }
+  .op-header { display: flex; justify-content: space-between; align-items: center; }
+  .op-info b { font-size: 14px; color: #f0f3f9; }
+  .op-info span { color: #8b94a7; font-size: 11px; }
+  
+  .energy-bar-wrap { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8b94a7; }
+  .energy-track { flex-grow: 1; height: 5px; background: #2a3447; border-radius: 3px; overflow: hidden; }
+  .energy-fill { height: 100%; transition: width 0.3s; }
+
+  .op-buttons { display: flex; gap: 4px; flex-wrap: wrap; }
+  .small { flex: 1; min-width: 50px; padding: 6px 2px; font-size: 11px; border-radius: 6px; margin: 0; background: #2a3447; color: #e8ecf3; }
+  .small.rest { background: #3b82f6; }
+  .small.train { background: #f59e0b; color: #111; }
+  .small.fire { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+  .small.promote { background: #8b5cf6; color: #fff; }
+
+  .event-banner { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; display: none; }
+  .contract-banner { background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #c4b5fd; padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; display: none; }
+  .quest-banner { background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); color: #22d3ee; padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; display: none; }
+  
+  .dilemma-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,19,26,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; display: none; }
+  .dilemma-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 16px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transform: scale(0.9); animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+  @keyframes popIn { to { transform: scale(1); } }
+  .dilemma-title { font-size: 16px; font-weight: bold; color: #38bdf8; }
+  .dilemma-desc { font-size: 13px; color: #cbd5e1; line-height: 1.4; }
+  .dilemma-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+
+  .ach-box { font-size: 11px; color: #9ca3af; display: flex; flex-direction: column; gap: 3px; }
+  .ach-item { color: #6b7280; }
+  .ach-item.unlocked { color: #10b981; font-weight: 500; }
+  
+  .roles-hint { display: flex; gap: 4px; margin-top: 6px; font-size: 10px; color: #8b94a7; background: #151a23; padding: 6px; border-radius: 8px; justify-content: space-around; text-align: center; }
+</style>
+</head>
+<body>
+
+    <!-- Элитная заставка (Splash Screen) -->
+    <div id="splashScreen">
+      <div class="splash-bg-glow"></div>
+      <div class="splash-card-box">
+        <div class="splash-badge">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        </div>
+        <div class="splash-title">КОЛЛ-ЦЕНТР</div>
+        <div class="splash-subtitle">BUSINESS EMPIRE</div>
+        <div class="splash-loader-bar">
+          <div class="splash-loader-fill"></div>
+        </div>
+        <div class="splash-tap-text">Загрузка данных корпорации...</div>
+      </div>
+    </div>
+
+    <h1>Колл-центр</h1>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('game')">📞 Смена</button>
+      <button class="tab-btn" onclick="switchTab('office')">🏢 Офис</button>
+      <button class="tab-btn" onclick="switchTab('market')">📈 Рынок и Банк</button>
+    </div>
+
+    <!-- ВКЛАДКА 1: СМЕНА -->
+    <div id="pane-game" class="tab-pane active">
+      <div class="card scene"><canvas id="cv" width="360" height="240"></canvas></div>
+
+      <div id="eventBanner" class="event-banner"></div>
+      <div id="contractBanner" class="contract-banner"></div>
+      <div id="questBanner" class="quest-banner"></div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">День</div>
+          <div class="stat-value" id="day">1</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Деньги</div>
+          <div class="stat-value good" id="money">1500$</div>
+        </div>
+        <div class="stat-card wide">
+          <div class="stat-label">Репутация (<span id="rep">50</span>%)</div>
+          <div class="bar"><div class="fill" id="repFill" style="width: 50%;"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Зарплаты / день</div>
+          <div class="stat-value bad" id="salary">150$</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Цена звонка</div>
+          <div class="stat-value" id="price">13$</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Спрос</div>
+          <div class="stat-value" id="demand">15–40</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Рекорд</div>
+          <div class="stat-value" id="best">0 дн.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Уровень офиса</div>
+          <div class="stat-value" id="officeLevel">Уровень 1</div>
+        </div>
+      </div>
+
+      <div class="actions-container" id="actionsGrid">
+        <button id="autoBtn" class="btn-warning">▶ Авто-игра</button>
+        <button id="hireBtn" class="btn-success">+ Найм (400$)</button>
+        <button id="bonusBtn" class="btn-primary">🏆 Премия (200$)</button>
+        <button id="nightBtn" class="btn-danger">🌙 Ночная смена</button>
+        <button id="contractBtn" class="btn-purple" style="display:none; grid-column: span 2;">💼 Контракт / Тендер</button>
+        <button id="restartBtn" class="btn-danger" style="display:none; grid-column: span 2;">Начать заново</button>
+      </div>
+
+      <div class="card">
+        <div class="stat-label" style="margin-bottom:6px">Команда операторов</div>
+        <div class="op-list" id="opList"></div>
+        <div class="roles-hint">
+          <span>💸 VIP: дох. с VIP</span>
+          <span>🛡️ Антикриз: репутация</span>
+          <span>⚡ Энерджайзер: энергия</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 2: ОФИС -->
+    <div id="pane-office" class="tab-pane">
+      <div class="card">
+        <div class="stat-label" style="margin-bottom:8px">🏢 Улучшения офиса и комфорт</div>
+        <button id="officeBtn" class="btn-office">🏢 Офис Lv.2 (2000$)</button>
+        <button id="tokyoBtn" class="btn-tokyo" style="display:none">🌆 Филиал Токио Lv.3 (15000$)</button>
+        <button id="coffeeBtn" class="btn-success">☕ Кофе-аппарат (600$)</button>
+        <button id="chairBtn" class="btn-primary">🪑 Эргономичные кресла (800$)</button>
+        <button id="pcBtn" class="btn-purple">💻 Мощные ПК (1000$)</button>
+        <button id="botBtn" class="btn-success">🤖 Автоответчик (1200$)</button>
+        <button id="bossRoomBtn" class="btn-purple">💼 Кабинет босса (1500$)</button>
+        <button id="ventBtn" class="btn-office">🌀 Вентиляция / СЭС (900$)</button>
+        <button id="corpUniBtn" class="btn-success">🎓 Корп. Университет (800$)</button>
+        <button id="relaxBtn" class="btn-purple">🛋️ Комната отдыха (700$)</button>
+      </div>
+      <div class="card">
+        <div class="stat-label" style="margin-bottom:8px">🎨 Интерьер и кастомизация</div>
+        <button class="btn-primary" onclick="openDecorModal()">Выбрать стиль офиса</button>
+        <button class="btn-warning" onclick="holdParty()">🎉 Провести корпоратив (400$)</button>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 3: РЫНОК И БАНК -->
+    <div id="pane-market" class="tab-pane">
+      <div class="card">
+        <div class="stat-label" style="margin-bottom:8px">📈 Отдел маркетинга</div>
+        <button class="btn-primary" onclick="openMarketingModal()">Настроить рекламу</button>
+      </div>
+      <div class="card">
+        <div class="stat-label" style="margin-bottom:8px">🏦 Банк и Инвестиции</div>
+        <button class="btn-success" onclick="openBankModal()">Открыть финансовый терминал</button>
+      </div>
+    </div>
+
+    <div id="dilemmaOverlay" class="dilemma-overlay">
+      <div class="dilemma-card">
+        <div class="dilemma-title" id="dilemmaTitle">Дилемма руководства</div>
+        <div class="dilemma-desc" id="dilemmaDesc">Описание ситуации...</div>
+        <div class="dilemma-btns" id="dilemmaBtns"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stat-label" style="margin-bottom:4px">🏆 Достижения (с наградами)</div>
+      <div class="ach-box" id="achList"></div>
+    </div>
+
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      var splash = document.getElementById('splashScreen');
+      if (splash) {
+        splash.style.opacity = '0';
+        splash.style.transform = 'scale(1.05)';
+        setTimeout(function() { splash.style.display = 'none'; }, 600);
+      }
+    }, 1600);
+  });
+
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+    
+    if (tabName === 'game') {
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      $('pane-game').classList.add('active');
+    } else if (tabName === 'office') {
+      document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      $('pane-office').classList.add('active');
+    } else if (tabName === 'market') {
+      document.querySelectorAll('.tab-btn')[2].classList.add('active');
+      $('pane-market').classList.add('active');
+    }
+  }
+
+  var floatingTexts = [];
+  var tapBonuses = [];
+  var emergencyTasks = [];
+  var inspector = null;
+  var internBonus = null;
+  var shiftIncident = null;
+  var poachersOffer = null;
+
+  var marketingLevel = 0;
+  var marketingCost = 0;
+  var hasCorpUni = false;
+  var hasRelaxRoom = false;
+  var bankLoan = 0;
+  var stockBalance = 0;
+  var officeStyle = 'default';
+
+  function addFloatingText(text, x, y, isGood) {
+    floatingTexts.push({ text: text, x: x, y: y, alpha: 1.0, vy: -0.7, isGood: isGood, life: 50 });
+  }
+
+  var audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  }
+
+  function playSound(type) {
+    try {
+      initAudio();
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+      var now = audioCtx.currentTime;
+
+      if (type === 'click') {
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.04);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.04);
+      } else if (type === 'coin') {
+        var notes = [1046.50, 1318.51];
+        notes.forEach(function(freq, idx) {
+          var osc = audioCtx.createOscillator();
+          var gain = audioCtx.createGain();
+          var filter = audioCtx.createBiquadFilter();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+          filter.type = 'lowpass'; filter.frequency.setValueAtTime(2500, now);
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.setValueAtTime(0.04, now + idx * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.0005, now + idx * 0.06 + 0.22);
+          osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.06); osc.stop(now + idx * 0.06 + 0.22);
+        });
+      } else if (type === 'event') {
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        var filter = audioCtx.createBiquadFilter();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.12);
+        filter.type = 'lowpass'; filter.frequency.setValueAtTime(1800, now);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.35);
+      } else if (type === 'alert') {
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.08);
+      } else if (type === 'success_boost') {
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.1);
+      }
+    } catch (e) {}
+  }
+
+  var HIRE_COST = 400;
+  var TRAIN_COST = 250;
+  var COFFEE_COST = 600;
+  var REST_COST = 150;
+  var BONUS_COST = 200;
+  var OFFICE_COST = 2000;
+  var TOKYO_COST = 15000;
+  var CHAIR_COST = 800;
+  var PC_COST = 1000;
+  var BOT_COST = 1200;
+  var BOSS_ROOM_COST = 1500;
+  var VENT_COST = 900;
+
+  var NAMES = ["Аня","Борис","Вика","Глеб","Дима","Елена","Жанна","Игорь",
+               "Катя","Лёва","Маша","Никита","Оля","Павел","Рита","Саша"];
+  var ROLES = [
+    { type: 'vip', name: '💸 VIP-менеджер', desc: '+30% к доходу с VIP звонков' },
+    { type: 'crisis', name: '🛡️ Антикризисный', desc: 'Меньше теряет репутацию' },
+    { type: 'energy', name: '⚡ Энерджайзер', desc: 'Медленнее тратит энергию' }
+  ];
+  var SPECIALIZATIONS = [
+    { type: 'tech', name: '⚙️ Технарь (+навык)', bonus: 3 },
+    { type: 'sales', name: '💰 Продажник (+цена звонка)', bonus: 1.2 },
+    { type: 'psych', name: '🧠 Психолог (стойкость)', bonus: 0.5 }
+  ];
+
+  var state, best = 0, lostToday = 0, flashUntil = 0;
+  var currentEvent = null;
+  var currentQuest = null;
+  var autoPlayInterval = null;
+  var wasAutoPlaying = false;
+  var isNightShift = false;
+
+  try { best = parseInt(localStorage.getItem("best") || "0") || 0; } catch (e) {}
+
+  function checkOfflineEarnings() {
+    try {
+      var lastTime = localStorage.getItem("last_save_time");
+      if (lastTime) {
+        var diffSec = Math.floor((Date.now() - parseInt(lastTime)) / 1000);
+        if (diffSec > 60) {
+          var offlineMinutes = Math.floor(diffSec / 60);
+          var earnings = offlineMinutes * 15;
+          if (earnings > 5000) earnings = 5000;
+          if (earnings > 0) {
+            setTimeout(function() {
+              $("dilemmaTitle").textContent = "С возвращением!";
+              $("dilemmaDesc").textContent = "Пока вас не было офлайн, ваш офис принес прибыль от договоров: +" + earnings + "$";
+              var bContainer = $("dilemmaBtns");
+              bContainer.innerHTML = "";
+              var bClose = document.createElement("button");
+              bClose.className = "btn-success";
+              bClose.textContent = "Забрать деньги!";
+              bClose.onclick = function() {
+                playSound('coin');
+                state.money += earnings;
+                closeDilemma();
+                render();
+              };
+              bContainer.appendChild(bClose);
+              $("dilemmaOverlay").style.display = "flex";
+            }, 1800);
+          }
+        }
+      }
+    } catch(e) {}
+  }
+
+  function saveGameTime() {
+    try { localStorage.setItem("last_save_time", Date.now().toString()); } catch(e) {}
+  }
+  setInterval(saveGameTime, 10000);
+
+  function newState() {
+    marketingLevel = 0;
+    marketingCost = 0;
+    hasCorpUni = false;
+    hasRelaxRoom = false;
+    bankLoan = 0;
+    stockBalance = 0;
+    officeStyle = 'default';
+
+    return {
+      money: 1500, day: 1, reputation: 50, over: false, hasCoffee: false, hasChairs: false, hasPC: false, hasBot: false, hasBossRoom: false, hasVent: false, officeLevel: 1, firedCount: 0,
+      ach1Claimed: false, ach2Claimed: false, ach3Claimed: false,
+      contract: null, contractOffer: false, tenderOffers: null,
+      operators: [
+        { name: "Аня", skill: 9, salary: 50, energy: 100, role: ROLES[0], isTeamLead: false, spec: null },
+        { name: "Борис", skill: 10, salary: 55, energy: 100, role: ROLES[1], isTeamLead: false, spec: null },
+        { name: "Вика", skill: 8, salary: 45, energy: 100, role: ROLES[2], isTeamLead: false, spec: null }
+      ]
+    };
+  }
+
+  function rand(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+  function growth() { return Math.floor(state.day / 4) + (marketingLevel * 5); }
+  function callPrice() { 
+    var mult = isNightShift ? 2.0 : 1.0;
+    if (state.officeLevel === 2) mult *= 1.25;
+    if (state.officeLevel >= 3) mult *= 2.0;
+    state.operators.forEach(function(o) {
+      if (o.spec && o.spec.type === 'sales') mult *= 1.1;
+    });
+    return (8 + Math.floor(state.reputation / 10)) * mult; 
+  }
+  function dailySalary() { return state.operators.reduce(function (s, o) { return s + o.salary; }, 0); }
+  
+  function capacity() { 
+    var bonusSkill = state.hasPC ? 3 : 0;
+    var total = state.operators.reduce(function (s, o) {
+      var eff = o.energy < 50 ? 0.85 : 1.0;
+      var teamLeadMult = o.isTeamLead ? 1.4 : 1.0;
+      var specBonus = (o.spec && o.spec.type === 'tech') ? o.spec.bonus : 0;
+      return s + Math.floor((o.skill + bonusSkill + specBonus) * eff * teamLeadMult);
+    }, 0);
+    if (state.hasCoffee) total = Math.floor(total * 1.15);
+    if (state.officeLevel === 2) total = Math.floor(total * 1.2);
+    if (state.officeLevel >= 3) total = Math.floor(total * 1.5);
+    if (state.hasBot) total += 5;
+    if (currentEvent && currentEvent.type === 'flu') total = Math.floor(total * 0.8);
+    return total;
+  }
+  function $(id) { return document.getElementById(id); }
+
+  function render() {
+    $("day").textContent = state.day;
+    $("money").textContent = Math.floor(state.money) + "$";
+    $("rep").textContent = state.reputation;
+    $("repFill").style.width = state.reputation + "%";
+    $("salary").textContent = dailySalary() + "$";
+    $("price").textContent = Math.floor(callPrice()) + "$";
+    
+    if (state.officeLevel >= 3) {
+      $("officeLevel").textContent = "Токио (Lv.3)";
+    } else if (state.officeLevel === 2) {
+      $("officeLevel").textContent = "Уровень 2";
+    } else {
+      $("officeLevel").textContent = "Уровень 1";
+    }
+    
+    var baseMin = 15 + growth();
+    var baseMax = 40 + growth();
+    if (isNightShift) { baseMin = Math.floor(baseMin * 1.4); baseMax = Math.floor(baseMax * 1.4); }
+    if (currentEvent) {
+      if (currentEvent.type === 'boom') { baseMin = Math.floor(baseMin * 1.5); baseMax = Math.floor(baseMax * 1.5); }
+      if (currentEvent.type === 'strike') { baseMin = 5; baseMax = 15; }
+    }
+    $("demand").textContent = baseMin + "–" + baseMax;
+    $("best").textContent = best + " дн.";
+
+    if (state.over) {
+      $("restartBtn").style.display = "block";
+      $("actionsGrid").className = "actions-container full";
+    } else {
+      $("restartBtn").style.display = "none";
+      $("actionsGrid").className = "actions-container";
+    }
+
+    if (state.officeLevel >= 3) {
+      $("officeBtn").style.display = "none";
+      $("tokyoBtn").style.display = "none";
+    } else if (state.officeLevel === 2) {
+      $("officeBtn").style.display = "none";
+      $("tokyoBtn").style.display = state.money >= TOKYO_COST ? "block" : "none";
+    } else {
+      $("officeBtn").style.display = state.money >= OFFICE_COST ? "block" : "none";
+      $("tokyoBtn").style.display = "none";
+    }
+
+    if (state.hasCoffee) {
+      $("coffeeBtn").style.display = "none";
+    } else {
+      $("coffeeBtn").style.display = state.money >= COFFEE_COST ? "block" : "none";
+    }
+
+    $("chairBtn").style.display = (!state.hasChairs && state.money >= CHAIR_COST) ? "block" : "none";
+    $("pcBtn").style.display = (!state.hasPC && state.money >= PC_COST) ? "block" : "none";
+    $("botBtn").style.display = (!state.hasBot && state.money >= BOT_COST) ? "block" : "none";
+    $("bossRoomBtn").style.display = (!state.hasBossRoom && state.money >= BOSS_ROOM_COST) ? "block" : "none";
+    $("ventBtn").style.display = (!state.hasVent && state.money >= VENT_COST) ? "block" : "none";
+    $("corpUniBtn").style.display = (!hasCorpUni && state.money >= 800) ? "block" : "none";
+    $("relaxBtn").style.display = (!hasRelaxRoom && state.money >= 700) ? "block" : "none";
+
+    $("nightBtn").style.display = !state.over ? "flex" : "none";
+    $("nightBtn").textContent = isNightShift ? "☀️ Обычный режим" : "🌙 Ночная смена";
+    $("nightBtn").className = isNightShift ? "btn-warning" : "btn-danger";
+
+    if (state.contract && state.contract.daysLeft > 0) {
+      $("contractStatus").textContent = "Активен (" + state.contract.daysLeft + " дн.)";
+      $("contractBtn").style.display = "block";
+      $("contractBanner").style.display = "block";
+      $("contractBanner").innerHTML = "💼 <b>Тендер/Контракт:</b> " + state.contract.name + " (+ " + state.contract.dailyBonus + "$/день)";
+    } else if (state.tenderOffers && state.tenderOffers.length > 0) {
+      $("contractBtn").style.display = "block";
+      $("contractBanner").style.display = "none";
+      if (autoPlayInterval) { wasAutoPlaying = true; stopAutoPlay(); }
+    } else {
+      $("contractBtn").style.display = "none";
+      $("contractBanner").style.display = "none";
+    }
+
+    if (currentQuest) {
+      $("questBanner").style.display = "block";
+      $("questBanner").innerHTML = "🎯 <b>Задание дня:</b> " + currentQuest.text + " (Награда: +" + currentQuest.reward + "$)";
+    } else {
+      $("questBanner").style.display = "none";
+    }
+
+    if (state.operators.length > 0 && !state.over) {
+      $("bonusBtn").style.display = state.money >= BONUS_COST ? "flex" : "none";
+    } else {
+      $("bonusBtn").style.display = "none";
+    }
+
+    var box = $("opList");
+    box.innerHTML = "";
+    state.operators.forEach(function (o, i) {
+      var energyColor = o.energy < 50 ? '#ef4444' : '#10b981';
+      var leadBadge = o.isTeamLead ? ' 👑 [Тимлид]' : '';
+      var specText = o.spec ? ' [' + o.spec.name.split(' ')[0] + ']' : '';
+      var d = document.createElement("div");
+      d.className = "op";
+      d.innerHTML = 
+        '<div class="op-header">' +
+          '<div class="op-info"><b>' + o.name + '</b> (' + o.role.name + ')' + leadBadge + specText + '<br><span>Навык: ' + o.skill + ' · Зарплата: ' + o.salary + '$</span></div>' +
+        '</div>' +
+        '<div class="energy-bar-wrap">' +
+          '<span>Энергия: ' + o.energy + '%</span>' +
+          '<div class="energy-track"><div class="energy-fill" style="width: ' + o.energy + '%; background: ' + energyColor + ';"></div></div>' +
+        '</div>';
+      
+      var btnContainer = document.createElement("div");
+      btnContainer.className = "op-buttons";
+
+      var restBtn = document.createElement("button");
+      restBtn.className = "small rest"; restBtn.textContent = "Отдых";
+      restBtn.onclick = function () { playSound('click'); restOp(i); };
+
+      var trainBtn = document.createElement("button");
+      trainBtn.className = "small train"; trainBtn.textContent = "Учить";
+      trainBtn.onclick = function () { playSound('click'); trainOp(i); };
+
+      if (!o.isTeamLead && o.skill >= 10) {
+        var leadBtn = document.createElement("button");
+        leadBtn.className = "small promote"; leadBtn.textContent = "Тимлид";
+        leadBtn.onclick = function () { playSound('click'); promoteOp(i); };
+        btnContainer.appendChild(leadBtn);
+      }
+
+      if (!o.spec) {
+        var specBtn = document.createElement("button");
+        specBtn.className = "small promote"; specBtn.textContent = "Профиль";
+        specBtn.onclick = function () { playSound('click'); openSpecModal(i); };
+        btnContainer.appendChild(specBtn);
+      }
+
+      var fireBtn = document.createElement("button");
+      fireBtn.className = "small fire"; fireBtn.textContent = "Уволить";
+      fireBtn.onclick = function () { playSound('click'); fire(i); };
+
+      btnContainer.appendChild(restBtn);
+      btnContainer.appendChild(trainBtn);
+      btnContainer.appendChild(fireBtn);
+      d.appendChild(btnContainer);
+      box.appendChild(d);
+    });
+
+    if (currentEvent) {
+      $("eventBanner").style.display = "block";
+      $("eventBanner").innerHTML = "⚡ <b>Событие:</b> " + currentEvent.text;
+    } else {
+      $("eventBanner").style.display = "none";
+    }
+
+    renderAchievements();
+  }
+
+  function renderAchievements() {
+    var survived = state.day - 1;
+    var ach1 = survived >= 10;
+    var ach2 = state.money >= 3000;
+    var ach3 = state.hasCoffee;
+
+    var html = '';
+    html += '<div class="ach-item ' + (ach1 ? 'unlocked' : '') + '">' + (ach1 && state.ach1Claimed ? '✅ Награда зачтена' : (ach1 ? '🎁 <button onclick="claimAch(1)" style="display:inline;width:auto;padding:2px 6px;font-size:10px;">Забрать 500$</button>' : '🔒')) + ' Продержаться 10 дней</div>';
+    html += '<div class="ach-item ' + (ach2 ? 'unlocked' : '') + '">' + (ach2 && state.ach2Claimed ? '✅ Награда зачтена' : (ach2 ? '🎁 <button onclick="claimAch(2)" style="display:inline;width:auto;padding:2px 6px;font-size:10px;">Забрать 1000$</button>' : '🔒')) + ' Накопить 3000$</div>';
+    html += '<div class="ach-item ' + (ach3 ? 'unlocked' : '') + '">' + (ach3 && state.ach3Claimed ? '✅ Награда зачтена' : (ach3 ? '🎁 <button onclick="claimAch(3)" style="display:inline;width:auto;padding:2px 6px;font-size:10px;">Забрать 400$</button>' : '🔒')) + ' Установить кофе-аппарат</div>';
+
+    $("achList").innerHTML = html;
+  }
+
+  window.claimAch = function(id) {
+    playSound('coin');
+    if (id === 1 && !state.ach1Claimed) { state.ach1Claimed = true; state.money += 500; addFloatingText("+500$ (Ачивка)", W/2, 40, true); }
+    if (id === 2 && !state.ach2Claimed) { state.ach2Claimed = true; state.money += 1000; addFloatingText("+1000$ (Ачивка)", W/2, 40, true); }
+    if (id === 3 && !state.ach3Claimed) { state.ach3Claimed = true; state.money += 400; addFloatingText("+400$ (Ачивка)", W/2, 40, true); }
+    render();
+  };
+
+  function hire() {
+    if (state.over) return;
+    if (state.money < HIRE_COST) return;
+    var used = state.operators.map(function (o) { return o.name; });
+    var free = NAMES.filter(function (n) { return used.indexOf(n) === -1; });
+    if (!free.length) return;
+    var baseSkill = hasCorpUni ? rand(9, 13) : rand(6, 12);
+    var op = { 
+      name: free[rand(0, free.length - 1)], 
+      skill: baseSkill, 
+      salary: rand(40, 70), 
+      energy: 100, 
+      role: ROLES[rand(0, ROLES.length - 1)],
+      isTeamLead: false,
+      spec: null
+    };
+    state.money -= HIRE_COST;
+    state.operators.push(op);
+    render();
+  }
+
+  function upgradeOffice() {
+    if (state.over) return;
+    if (state.money < OFFICE_COST) return;
+    state.money -= OFFICE_COST;
+    state.officeLevel = 2;
+    render();
+  }
+
+  function upgradeTokyo() {
+    if (state.over) return;
+    if (state.money < TOKYO_COST) return;
+    state.money -= TOKYO_COST;
+    state.officeLevel = 3;
+    render();
+  }
+
+  function giveBonus() {
+    if (state.over) return;
+    if (state.money < BONUS_COST) return;
+    state.money -= BONUS_COST;
+    state.operators.forEach(function(o) { o.energy = 100; });
+    render();
+  }
+
+  function toggleNightShift() {
+    if (state.over) return;
+    playSound('click');
+    isNightShift = !isNightShift;
+    render();
+  }
+
+  function trainOp(i) {
+    if (state.over) return;
+    if (state.money < TRAIN_COST) return;
+    state.money -= TRAIN_COST;
+    state.operators[i].skill += 2;
+    state.operators[i].salary += 15;
+    render();
+  }
+
+  function promoteOp(i) {
+    if (state.over) return;
+    var op = state.operators[i];
+    if (op.isTeamLead) return;
+    op.isTeamLead = true;
+    op.salary += 30;
+    render();
+  }
+
+  function openSpecModal(i) {
+    var op = state.operators[i];
+    $("dilemmaTitle").textContent = "Выбор специализации: " + op.name;
+    $("dilemmaDesc").textContent = "Выберите профессиональный профиль для сотрудника:";
+    var bContainer = $("dilemmaBtns");
+    bContainer.innerHTML = "";
+    SPECIALIZATIONS.forEach(function(spec) {
+      var btn = document.createElement("button");
+      btn.className = "btn-primary";
+      btn.textContent = spec.name;
+      btn.onclick = function() {
+        playSound('click');
+        op.spec = spec;
+        closeDilemma();
+        render();
+      };
+      bContainer.appendChild(btn);
+    });
+    $("dilemmaOverlay").style.display = "flex";
+    playSound('event');
+  }
+
+  function restOp(i) {
+    if (state.over) return;
+    if (state.money < REST_COST) return;
+    state.money -= REST_COST;
+    state.operators[i].energy = 100;
+    render();
+  }
+
+  function buyCoffee() {
+    if (state.over || state.hasCoffee) return;
+    if (state.money < COFFEE_COST) return;
+    state.money -= COFFEE_COST;
+    state.hasCoffee = true;
+    render();
+  }
+
+  function buyChairs() {
+    if (state.over || state.hasChairs) return;
+    if (state.money < CHAIR_COST) return;
+    state.money -= CHAIR_COST;
+    state.hasChairs = true;
+    render();
+  }
+
+  function buyPC() {
+    if (state.over || state.hasPC) return;
+    if (state.money < PC_COST) return;
+    state.money -= PC_COST;
+    state.hasPC = true;
+    render();
+  }
+
+  function buyBot() {
+    if (state.over || state.hasBot) return;
+    if (state.money < BOT_COST) return;
+    state.money -= BOT_COST;
+    state.hasBot = true;
+    render();
+  }
+
+  function buyBossRoom() {
+    if (state.over || state.hasBossRoom) return;
+    if (state.money < BOSS_ROOM_COST) return;
+    state.money -= BOSS_ROOM_COST;
+    state.hasBossRoom = true;
+    render();
+  }
+
+  function buyVent() {
+    if (state.over || state.hasVent) return;
+    if (state.money < VENT_COST) return;
+    state.money -= VENT_COST;
+    state.hasVent = true;
+    render();
+  }
+
+  function buyCorpUni() {
+    if (hasCorpUni || state.money < 800) return;
+    state.money -= 800;
+    hasCorpUni = true;
+    render();
+  }
+
+  function buyRelaxRoom() {
+    if (hasRelaxRoom || state.money < 700) return;
+    state.money -= 700;
+    hasRelaxRoom = true;
+    render();
+  }
+
+  function openMarketingModal() {
+    $("dilemmaTitle").textContent = "Отдел маркетинга и рекламы";
+    $("dilemmaDesc").textContent = "Текущий уровень: " + marketingLevel + ". Выберите кампанию:";
+    var bContainer = $("dilemmaBtns");
+    bContainer.innerHTML = "";
+    var mOpts = [
+      { lvl: 1, name: "📜 Листовки (50$/день)", cost: 50 },
+      { lvl: 2, name: "📱 Соцсети (150$/день)", cost: 150 },
+      { lvl: 3, name: "🏙️ Билборды (350$/день)", cost: 350 }
+    ];
+    mOpts.forEach(function(opt) {
+      var btn = document.createElement("button");
+      btn.className = "btn-primary";
+      btn.textContent = opt.name;
+      btn.onclick = function() {
+        playSound('click');
+        marketingLevel = opt.lvl;
+        marketingCost = opt.cost;
+        closeDilemma();
+        render();
+      };
+      bContainer.appendChild(btn);
+    });
+    var closeBtn = document.createElement("button");
+    closeBtn.className = "btn-danger"; closeBtn.textContent = "Закрыть"; closeBtn.onclick = closeDilemma;
+    bContainer.appendChild(closeBtn);
+    $("dilemmaOverlay").style.display = "flex";
+    playSound('event');
+  }
+
+  function holdParty() {
+    if (state.money < 400) return;
+    state.money -= 400;
+    state.operators.forEach(function(o) { o.energy = 100; });
+    state.reputation = Math.min(100, state.reputation + 5);
+    render();
+  }
+
+  function openBankModal() {
+    $("dilemmaTitle").textContent = "Банк и Инвестиции";
+    $("dilemmaDesc").textContent = "Кредит: " + bankLoan + "$ | Акции: " + stockBalance + "$";
+    var bContainer = $("dilemmaBtns");
+    bContainer.innerHTML = "";
+    var b1 = document.createElement("button");
+    b1.className = "btn-success"; b1.textContent = "Взять кредит (+1000$)";
+    b1.onclick = function() {
+      playSound('coin'); bankLoan += 1100; state.money += 1000;
+      closeDilemma(); render();
+    };
+    var b2 = document.createElement("button");
+    b2.className = "btn-primary"; b2.textContent = "Вложить в акции (+500$)";
+    b2.onclick = function() {
+      if (state.money < 500) return;
+      playSound('coin'); state.money -= 500; stockBalance += 500;
+      closeDilemma(); render();
+    };
+    var b3 = document.createElement("button");
+    b3.className = "btn-danger"; b3.textContent = "Закрыть"; b3.onclick = closeDilemma;
+    bContainer.appendChild(b1); bContainer.appendChild(b2); bContainer.appendChild(b3);
+    $("dilemmaOverlay").style.display = "flex"; playSound('event');
+  }
+
+  function openDecorModal() {
+    $("dilemmaTitle").textContent = "Кастомизация офиса";
+    $("dilemmaDesc").textContent = "Выберите стиль оформления:";
+    var bContainer = $("dilemmaBtns");
+    bContainer.innerHTML = "";
+    var styles = [
+      { id: 'default', name: "📁 Классический стиль" },
+      { id: 'neon', name: "🌆 Неон (+5% репутации)" },
+      { id: 'plants', name: "🌿 Эко-стиль (меньше усталость)" }
+    ];
+    styles.forEach(function(st) {
+      var btn = document.createElement("button");
+      btn.className = "btn-primary"; btn.textContent = st.name;
+      btn.onclick = function() {
+        playSound('click'); officeStyle = st.id;
+        if (officeStyle === 'neon') state.reputation = Math.min(100, state.reputation + 5);
+        closeDilemma(); render();
+      };
+      bContainer.appendChild(btn);
+    });
+    $("dilemmaOverlay").style.display = "flex"; playSound('event');
+  }
+
+  function openTendersModal() {
+    if (!state.tenderOffers || state.tenderOffers.length === 0) return;
+    $("dilemmaTitle").textContent = "Сезонный тендер";
+    $("dilemmaDesc").textContent = "Выберите контракт:";
+    var bContainer = $("dilemmaBtns");
+    bContainer.innerHTML = "";
+    state.tenderOffers.forEach(function(tender) {
+      var btn = document.createElement("button");
+      btn.className = "btn-primary";
+      btn.textContent = tender.name + " (+" + tender.dailyBonus + "$/дн)";
+      btn.onclick = function() {
+        playSound('click');
+        state.contract = { name: tender.name, daysLeft: 5, dailyBonus: tender.dailyBonus, maxLost: tender.maxLost };
+        state.tenderOffers = null;
+        closeDilemma();
+        render();
+        if (wasAutoPlaying) { wasAutoPlaying = false; startAutoPlay(); }
+      };
+      bContainer.appendChild(btn);
+    });
+    $("dilemmaOverlay").style.display = "flex"; playSound('event');
+  }
+
+  function openPoachersModal(op) {
+    $("dilemmaTitle").textContent = "Конкуренты переманивают кадры!";
+    $("dilemmaDesc").textContent = op.name + " думает уйти к конкурентам!";
+    var bContainer = $("dilemmaBtns");
+    bContainer.innerHTML = "";
+    var b1 = document.createElement("button");
+    b1.className = "btn-success"; b1.textContent = "Доплатить премию (150$)";
+    b1.onclick = function() {
+      playSound('coin'); state.money -= 150; op.salary += 15; poachersOffer = null;
+      closeDilemma(); render();
+      if (wasAutoPlaying) startAutoPlay();
+    };
+    var b2 = document.createElement("button");
+    b2.className = "btn-danger"; b2.textContent = "Отпустить";
+    b2.onclick = function() {
+      playSound('alert'); var idx = state.operators.indexOf(op);
+      if (idx !== -1) state.operators.splice(idx, 1);
+      poachersOffer = null; closeDilemma();
+      render();
+      if (wasAutoPlaying) startAutoPlay();
+    };
+    bContainer.appendChild(b1); bContainer.appendChild(b2);
+    $("dilemmaOverlay").style.display = "flex"; playSound('alert');
+  }
+
+  function fire(i) {
+    if (state.over) return;
+    if (state.operators.length <= 1) return;
+    state.operators.splice(i, 1);
+    state.firedCount++;
+    render();
+  }
+
+  function triggerRandomEvent() {
+    var roll = Math.random();
+    if (roll < 0.20) {
+      currentEvent = { type: 'boom', text: 'Реклама выстрелила! Спрос вырос.' };
+    } else if (roll < 0.38) {
+      currentEvent = { type: 'flu', text: 'Сезон простуд: эффективность снижена.' };
+    } else if (roll < 0.52) {
+      currentEvent = { type: 'strike', text: 'Сбой связи: мало входящих.' };
+    } else if (roll < 0.68) {
+      if (state.hasVent) {
+        state.money += 300;
+        currentEvent = { type: 'ses', text: 'Проверка СЭС пройдена! +300$' };
+        addFloatingText("+300$", W / 2, 40, true);
+      } else {
+        state.money -= 250; state.reputation = Math.max(0, state.reputation - 5);
+        currentEvent = { type: 'ses', text: 'Проверка СЭС: штраф -250$' };
+        addFloatingText("-250$", W / 2, 40, false);
+      }
+    } else {
+      currentEvent = null;
+    }
+
+    if (currentEvent) playSound('event');
+
+    if (!state.contract && Math.random() < 0.22) {
+      state.tenderOffers = [
+        { name: "🏦 Банковский ритейл", dailyBonus: 250, maxLost: 6 },
+        { name: "🍕 Доставка пиццы", dailyBonus: 180, maxLost: 8 },
+        { name: "⚡ Интернет-провайдер", dailyBonus: 350, maxLost: 4 }
+      ];
+      playSound('event');
+      openTendersModal();
+    } else {
+      state.tenderOffers = null;
+    }
+
+    if (state.operators.length > 0 && Math.random() < 0.2) {
+      poachersOffer = state.operators[rand(0, state.operators.length - 1)];
+      if (autoPlayInterval) { wasAutoPlaying = true; stopAutoPlay(); }
+      openPoachersModal(poachersOffer);
+    }
+
+    if (Math.random() < 0.35) {
+      var qTypes = [
+        { text: "Принять более 35 звонков", reward: 250, check: function(ans) { return ans >= 35; } },
+        { text: "Удержать репутацию выше 60%", reward: 200, check: function() { return state.reputation >= 60; } },
+        { text: "Завершить день без потерь", reward: 300, check: function(_, lost) { return lost === 0; } }
+      ];
+      var qt = qTypes[rand(0, qTypes.length - 1)];
+      currentQuest = { text: qt.text, reward: qt.reward, check: qt.check, done: false };
+    } else {
+      currentQuest = null;
+    }
+
+    if (Math.random() < 0.22 && !autoPlayInterval && !poachersOffer) {
+      triggerDilemma();
+    }
+
+    if (Math.random() < 0.45) {
+      var bTypes = ['gold', 'coffee', 'investor'];
+      tapBonuses.push({ x: rand(40, W - 40), y: rand(90, 180), type: bTypes[rand(0, bTypes.length - 1)], life: 110 });
+    }
+
+    if (Math.random() < 0.22) {
+      internBonus = { x: rand(60, W - 60), y: rand(110, 190), type: Math.random() < 0.6 ? 'intern' : 'saboteur', life: 85 };
+      playSound('alert');
+    }
+
+    if (Math.random() < 0.25) {
+      inspector = { x: rand(50, W - 50), y: rand(100, 200), life: 90 };
+      playSound('alert');
+    }
+
+    if (state.operators.length > 0 && Math.random() < 0.25) {
+      shiftIncident = { opIdx: rand(0, state.operators.length - 1), title: "Инцидент", life: 80 };
+      playSound('alert');
+    }
+  }
+
+  function triggerDilemma() {
+    var dilemmas = [
+      {
+        title: "Запрос повышения",
+        desc: "Сотрудник требует прибавку к зарплате.",
+        btn1: "Удовлетворить (+15 з/п)", act1: function() {
+          if(state.operators.length > 0) state.operators[0].salary += 15;
+          state.reputation = Math.min(100, state.reputation + 5);
+        },
+        btn2: "Отказать (-10 репутации)", act2: function() {
+          state.reputation = Math.max(0, state.reputation - 10);
+        }
+      }
+    ];
+    var d = dilemmas[0];
+    $("dilemmaTitle").textContent = d.title;
+    $("dilemmaDesc").textContent = d.desc;
+    var bContainer = $("dilemmaBtns");
+    bContainer.innerHTML = "";
+    var b1 = document.createElement("button"); b1.className = "btn-primary"; b1.textContent = d.btn1;
+    b1.onclick = function() { playSound('click'); d.act1(); closeDilemma(); render(); };
+    var b2 = document.createElement("button"); b2.className = "btn-danger"; b2.textContent = d.btn2;
+    b2.onclick = function() { playSound('click'); d.act2(); closeDilemma(); render(); };
+    bContainer.appendChild(b1); bContainer.appendChild(b2);
+    $("dilemmaOverlay").style.display = "flex"; playSound('event');
+  }
+
+  function closeDilemma() { $("dilemmaOverlay").style.display = "none"; }
+
+  function nextDay() {
+    if (state.over) return;
+    emergencyTasks = []; inspector = null; internBonus = null; shiftIncident = null; poachersOffer = null;
+    triggerRandomEvent();
+    
+    if (marketingLevel > 0) state.money -= marketingCost;
+    if (stockBalance > 0) {
+      var stockDelta = Math.floor(stockBalance * (rand(-5, 8) / 100));
+      stockBalance += stockDelta; state.money += stockDelta;
+    }
+
+    state.operators.forEach(function(o) {
+      var baseDrain = state.hasCoffee ? 10 : 15;
+      if (state.hasChairs) baseDrain = Math.floor(baseDrain * 0.8);
+      if (state.hasBossRoom) baseDrain = Math.floor(baseDrain * 0.9);
+      if (hasRelaxRoom) baseDrain = Math.floor(baseDrain * 0.75);
+      if (officeStyle === 'plants') baseDrain = Math.floor(baseDrain * 0.9);
+      if (o.role && o.role.type === 'energy') baseDrain = Math.floor(baseDrain * 0.75);
+      if (isNightShift) baseDrain *= 2;
+      o.energy = Math.max(0, o.energy - baseDrain);
+    });
+
+    var g = growth();
+    var baseMin = 15 + g; var baseMax = 40 + g;
+    if (isNightShift) { baseMin = Math.floor(baseMin * 1.4); baseMax = Math.floor(baseMax * 1.4); }
+    if (currentEvent && currentEvent.type === 'boom') { baseMin = Math.floor(baseMin * 1.5); baseMax = Math.floor(baseMax * 1.5); }
+    if (currentEvent && currentEvent.type === 'strike') { baseMin = 5; baseMax = 15; }
+
+    var incoming = rand(baseMin, baseMax);
+    var cap = capacity();
+    var vipCount = Math.floor(incoming * 0.2);
+    var normalCount = incoming - vipCount;
+    var normalAnswered = Math.min(normalCount, cap);
+    var remainingCap = Math.max(0, cap - normalCount);
+    var vipAnswered = Math.min(vipCount, Math.floor(remainingCap / 1.5));
+    var answered = normalAnswered + vipAnswered;
+    var lost = incoming - answered;
+
+    var standardPrice = callPrice();
+    var vipMultiplier = state.operators.some(function(o) { return o.role && o.role.type === 'vip'; }) ? 1.3 : 1.0;
+    var vipPrice = standardPrice * 3 * vipMultiplier;
+    var income = (normalAnswered * standardPrice) + (vipAnswered * vipPrice);
+    var salary = dailySalary();
+
+    var contractBonus = 0; var contractFailed = false;
+    if (state.contract && state.contract.daysLeft > 0) {
+      if (lost >= state.contract.maxLost) {
+        contractFailed = true; state.money -= 400; state.contract = null;
+        addFloatingText("-400$", W / 2, 60, false);
+      } else {
+        contractBonus = state.contract.dailyBonus; state.contract.daysLeft--;
+        if (state.contract.daysLeft === 0) state.contract = null;
+      }
+    }
+
+    var questBonus = 0;
+    if (currentQuest && !currentQuest.done) {
+      if (currentQuest.check(answered, lost)) {
+        questBonus = currentQuest.reward; currentQuest.done = true; state.money += questBonus;
+        addFloatingText("+" + questBonus + "$", W / 2, 70, true); playSound('coin');
+      }
+    }
+
+    var netDayProfit = income + contractBonus + questBonus - salary;
+    state.money += netDayProfit;
+    
+    if (netDayProfit > 0) { playSound('coin'); addFloatingText("+" + Math.floor(netDayProfit) + "$", W / 2, 50, true); }
+    else if (netDayProfit < 0) { addFloatingText(Math.floor(netDayProfit) + "$", W / 2, 50, false); }
+
+    var repLossMod = state.operators.some(function(o) { return o.role && o.role.type === 'crisis'; }) ? 0.7 : 1.0;
+    if (lost > 0) state.reputation -= Math.floor((lost / 6) * repLossMod); else state.reputation += 2;
+    state.reputation = Math.max(0, Math.min(100, state.reputation));
+    state.day += 1; lostToday = lost; flashUntil = performance.now() + 1500;
+
+    var reason = null;
+    var minAllowedMoney = state.hasBossRoom ? -1000 : 0;
+    if (state.money < minAllowedMoney) reason = "Банкротство!";
+    else if (state.reputation === 0) reason = "Репутация 0%!";
+
+    if (reason) {
+      state.over = true; stopAutoPlay(); wasAutoPlaying = false;
+      var survived = state.day - 1;
+      if (survived > best) { best = survived; try { localStorage.setItem("best", String(best)); } catch (e) {} }
+      $("restartBtn").style.display = "block";
+      $("actionsGrid").className = "actions-container full";
+      
+      setTimeout(function() {
+        $("dilemmaTitle").textContent = "🏆 Итоги игры";
+        $("dilemmaDesc").textContent = "Вы продержались " + survived + " дней! Баланс: " + Math.floor(state.money) + "$. Поделитесь результатом с друзьями!";
+        var bContainer = $("dilemmaBtns");
+        bContainer.innerHTML = "";
+        var bShare = document.createElement("button");
+        bShare.className = "btn-primary";
+        bShare.textContent = "📋 Скопировать результат";
+        bShare.onclick = function() {
+          navigator.clipboard.writeText("Мой рекорд в Колл-центр: " + survived + " дней! 🚀 Зацени игру!");
+          bShare.textContent = "Скопировано!";
+        };
+        var bClose = document.createElement("button");
+        bClose.className = "btn-danger";
+        bClose.textContent = "Закрыть";
+        bClose.onclick = closeDilemma;
+        bContainer.appendChild(bShare);
+        bContainer.appendChild(bClose);
+        $("dilemmaOverlay").style.display = "flex";
+      }, 500);
+    }
+    render();
+  }
+
+  function toggleAutoPlay() {
+    if (state.over) return;
+    playSound('click');
+    if (autoPlayInterval) { stopAutoPlay(); wasAutoPlaying = false; }
+    else { startAutoPlay(); }
+  }
+
+  function startAutoPlay() {
+    if (autoPlayInterval) return;
+    autoPlayInterval = setInterval(function() {
+      if (state.over || state.tenderOffers || poachersOffer || $("dilemmaOverlay").style.display === "flex") {
+        stopAutoPlay(); return;
+      }
+      nextDay();
+    }, 1300);
+    $("autoBtn").textContent = "⏸ Стоп"; $("autoBtn").className = "btn-danger";
+  }
+
+  function stopAutoPlay() {
+    if (autoPlayInterval) {
+      clearInterval(autoPlayInterval); autoPlayInterval = null;
+      $("autoBtn").textContent = "▶ Авто-игра"; $("autoBtn").className = "btn-warning";
+    }
+  }
+
+  function restart() {
+    playSound('click'); stopAutoPlay(); wasAutoPlaying = false;
+    state = newState(); lostToday = 0; currentEvent = null; currentQuest = null;
+    floatingTexts = []; tapBonuses = []; emergencyTasks = []; inspector = null; internBonus = null; shiftIncident = null; poachersOffer = null; isNightShift = false;
+    closeDilemma(); $("restartBtn").style.display = "none"; $("actionsGrid").className = "actions-container";
+    render();
+  }
+
+  var cv = $("cv"); var ctx = cv.getContext("2d"); var W = 360;
+  var SKINS = ["#f2c9a0", "#e0ac82", "#c68863", "#8d5a3b", "#f7d7bd"];
+  var HAIRS = ["#2b1d12", "#5a3a22", "#1a1a1a", "#b88a4a", "#8a2f1e", "#777777"];
+
+  function hash(s) {
+    var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h;
+  }
+
+  function rr(x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  function drawRoom(H) {
+    var lvl = state.officeLevel;
+    var wg = ctx.createLinearGradient(0, 0, 0, 84);
+    if (officeStyle === 'neon') { wg.addColorStop(0, "#4a044e"); wg.addColorStop(1, "#2e1065"); }
+    else if (officeStyle === 'plants') { wg.addColorStop(0, "#14532d"); wg.addColorStop(1, "#052e16"); }
+    else if (lvl >= 3) { wg.addColorStop(0, "#310438"); wg.addColorStop(1, "#12021a"); }
+    else if (lvl === 2) { wg.addColorStop(0, "#1e293b"); wg.addColorStop(1, "#0f172a"); }
+    else { wg.addColorStop(0, "#d6dcea"); wg.addColorStop(1, "#b7c0d3"); }
+    ctx.fillStyle = wg; ctx.fillRect(0, 0, W, 84);
+
+    var fg = ctx.createLinearGradient(0, 84, 0, H);
+    if (officeStyle === 'neon') { fg.addColorStop(0, "#701a75"); fg.addColorStop(1, "#3b0764"); }
+    else if (officeStyle === 'plants') { fg.addColorStop(0, "#166534"); fg.addColorStop(1, "#064e3b"); }
+    else if (lvl >= 3) { fg.addColorStop(0, "#2a0836"); fg.addColorStop(1, "#0f0214"); }
+    else if (lvl === 2) { fg.addColorStop(0, "#334155"); fg.addColorStop(1, "#1e293b"); }
+    else { fg.addColorStop(0, "#464f68"); fg.addColorStop(1, "#2b3144"); }
+    ctx.fillStyle = fg; ctx.fillRect(0, 84, W, H - 84);
+    ctx.strokeStyle = "rgba(0,0,0,0.18)"; ctx.lineWidth = 1;
+    for (var y = 100; y < H; y += 26) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    ctx.fillStyle = lvl >= 3 ? "#ec4899" : (lvl === 2 ? "#0ea5e9" : "#7d879e");
+    ctx.fillRect(0, 80, W, 5);
+
+    for (var i = 0; i < 4; i++) {
+      var wx = 16 + i * 86;
+      ctx.fillStyle = lvl >= 3 ? "#831843" : (lvl === 2 ? "#0369a1" : "#5a6480");
+      rr(wx - 3, 27, 76, 44, 4); ctx.fill();
+      var sg = ctx.createLinearGradient(0, 30, 0, 68);
+      if (lvl >= 3) {
+        sg.addColorStop(0, "#f472b6"); sg.addColorStop(1, "#fbcfe8");
+      } else if (lvl === 2) {
+        sg.addColorStop(0, "#38bdf8"); sg.addColorStop(1, "#bae6fd");
+      } else {
+        sg.addColorStop(0, "#8fd0ff"); sg.addColorStop(1, "#d9f0ff");
+      }
+      ctx.fillStyle = sg; ctx.fillRect(wx, 30, 70, 38);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.beginPath(); ctx.ellipse(wx + 20, 44, 11, 4, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(wx + 28, 41, 8, 3, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = lvl >= 3 ? "#831843" : (lvl === 2 ? "#0369a1" : "#5a6480");
+      ctx.fillRect(wx + 34, 30, 2, 38); ctx.fillRect(wx, 48, 70, 2);
+    }
+
+    ctx.fillStyle = lvl >= 3 ? "#db2777" : (lvl === 2 ? "#0284c7" : "#1e3a6e");
+    rr(110, 5, 140, 19, 6); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(lvl >= 3 ? "ТОКИО (CYBER)" : (lvl === 2 ? "VIP КОЛЛ-ЦЕНТР" : "КОЛЛ-ЦЕНТР"), 180, 15);
+  }
+
+  function drawPerson(o, i, cx, y0, t, active) {
+    var lvl = state.officeLevel; var h = hash(o.name);
+    var skin = SKINS[h % SKINS.length]; var hair = HAIRS[(h >> 3) % HAIRS.length];
+    var shirt = "hsl(" + ((o.skill * 31 + h) % 360) + ",55%,52%)";
+    var isAsleep = o.energy <= 0;
+    var bob = isAsleep ? 0 : (active ? Math.sin(t / 110 + i) * 1.2 : Math.sin(t / 700 + i) * 0.5);
+
+    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(cx, y0 + 68, 42, 6, 0, 0, 7); ctx.fill();
+
+    ctx.fillStyle = "#22262f"; rr(cx - 16, y0 + 12 + bob, 32, 34, 8); ctx.fill();
+    ctx.fillStyle = shirt; rr(cx - 13, y0 + 17 + bob, 26, 28, 7); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.12)"; rr(cx - 13, y0 + 17 + bob, 26, 8, 6); ctx.fill();
+
+    ctx.fillStyle = skin; ctx.fillRect(cx - 3, y0 + 14 + bob, 6, 6);
+    ctx.beginPath(); ctx.arc(cx, y0 + 7 + bob, 9.5, 0, 7); ctx.fill();
+    ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(cx, y0 + 6 + bob, 10, Math.PI, 0); ctx.fill();
+    ctx.fillRect(cx - 10, y0 + 5 + bob, 3, 7); ctx.fillRect(cx + 7, y0 + 5 + bob, 3, 7);
+
+    ctx.fillStyle = "#1a1a1a";
+    if (isAsleep) {
+      ctx.fillRect(cx - 5, y0 + 7, 3, 1); ctx.fillRect(cx + 2, y0 + 7, 3, 1);
+    } else {
+      ctx.beginPath(); ctx.arc(cx - 3.5, y0 + 8 + bob, 1.1, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 3.5, y0 + 8 + bob, 1.1, 0, 7); ctx.fill();
+    }
+
+    ctx.strokeStyle = "#7a3b2e"; ctx.lineWidth = 1; ctx.beginPath();
+    if (isAsleep) ctx.arc(cx, y0 + 12, 2, Math.PI, 0);
+    else if (active) ctx.arc(cx, y0 + 11 + bob, 2.6, 0.1, Math.PI - 0.1);
+    else ctx.arc(cx, y0 + 12 + bob, 2, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+
+    var dg = ctx.createLinearGradient(0, y0 + 40, 0, y0 + 66);
+    if (lvl >= 3) {
+      dg.addColorStop(0, "#f472b6"); dg.addColorStop(0.2, "#db2777"); dg.addColorStop(0.21, "#be185d"); dg.addColorStop(1, "#310438");
+    } else if (lvl === 2) {
+      dg.addColorStop(0, "#38bdf8"); dg.addColorStop(0.2, "#0284c7"); dg.addColorStop(0.21, "#0369a1"); dg.addColorStop(1, "#0f172a");
+    } else {
+      dg.addColorStop(0, "#d4b088"); dg.addColorStop(0.2, "#c9a47a"); dg.addColorStop(0.21, "#9a7b58"); dg.addColorStop(1, "#7f6347");
+    }
+    ctx.fillStyle = dg; rr(cx - 38, y0 + 40, 76, 26, 3); ctx.fill();
+
+    ctx.fillStyle = "#20242f"; rr(cx - 17, y0 + 45, 34, 7, 2); ctx.fill();
+    ctx.fillStyle = "#3a4152";
+    for (var k = 0; k < 6; k++) ctx.fillRect(cx - 15 + k * 5.5, y0 + 47, 4, 3);
+
+    ctx.fillStyle = "#20242f"; ctx.fillRect(cx + 23, y0 + 36, 6, 5);
+    ctx.fillStyle = "#151821"; rr(cx + 15, y0 + 17, 28, 20, 3); ctx.fill();
+    if (active) {
+      var gl = ctx.createLinearGradient(0, y0 + 19, 0, y0 + 35);
+      gl.addColorStop(0, "#3d8bff"); gl.addColorStop(1, "#0e4a96");
+      ctx.fillStyle = gl;
+    } else {
+      ctx.fillStyle = "#26324d";
+    }
+    ctx.fillRect(cx + 17, y0 + 19, 24, 16);
+
+    ctx.fillStyle = "#cbd2e0"; ctx.font = "11px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(o.name + (o.isTeamLead ? " 👑" : ""), cx, y0 + 80);
+
+    if (isAsleep) {
+      ctx.fillStyle = "#38bdf8"; ctx.font = "bold 12px sans-serif"; ctx.fillText("Zzz...", cx + 15, y0 - 5);
+    } else if (active) {
+      var by = y0 - 22 - Math.abs(Math.sin(t / 160 + i)) * 4;
+      ctx.fillStyle = "#ffd23f"; rr(cx - 12, by, 24, 17, 6); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx - 3, by + 16); ctx.lineTo(cx, by + 21); ctx.lineTo(cx + 3, by + 16); ctx.fill();
+      ctx.fillStyle = "#3a2b00"; ctx.font = "bold 11px sans-serif"; ctx.textBaseline = "middle";
+      ctx.fillText("ring", cx, by + 9);
+    }
+  }
+
+  function draw(t) {
+    var n = state.operators.length; var cols = 4; var rows = Math.ceil(n / cols);
+    var H = 112 + rows * 96 + 6; var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawRoom(H);
+
+    var active = t < flashUntil; var cw = W / cols;
+    for (var i = 0; i < n; i++) {
+      var perRow = Math.min(cols, n - Math.floor(i / cols) * cols);
+      var colIdx = i % cols; var offset = (W - perRow * cw) / 2;
+      var cx = offset + colIdx * cw + cw / 2; var y0 = 112 + Math.floor(i / cols) * 96;
+      drawPerson(state.operators[i], i, cx, y0, t, active);
+    }
+  }
+
+  function loop(t) { draw(t); requestAnimationFrame(loop); }
+
+  $("autoBtn").addEventListener("click", toggleAutoPlay);
+  $("hireBtn").addEventListener("click", function() { playSound('click'); hire(); });
+  $("officeBtn").addEventListener("click", function() { playSound('click'); upgradeOffice(); });
+  $("tokyoBtn").addEventListener("click", function() { playSound('click'); upgradeTokyo(); });
+  $("bonusBtn").addEventListener("click", function() { playSound('click'); giveBonus(); });
+  $("coffeeBtn").addEventListener("click", function() { playSound('click'); buyCoffee(); });
+  $("chairBtn").addEventListener("click", function() { playSound('click'); buyChairs(); });
+  $("pcBtn").addEventListener("click", function() { playSound('click'); buyPC(); });
+  $("botBtn").addEventListener("click", function() { playSound('click'); buyBot(); });
+  $("bossRoomBtn").addEventListener("click", function() { playSound('click'); buyBossRoom(); });
+  $("ventBtn").addEventListener("click", function() { playSound('click'); buyVent(); });
+  $("corpUniBtn").addEventListener("click", function() { playSound('click'); buyCorpUni(); });
+  $("relaxBtn").addEventListener("click", function() { playSound('click'); buyRelaxRoom(); });
+  $("nightBtn").addEventListener("click", toggleNightShift);
+  $("contractBtn").addEventListener("click", function() { playSound('click'); openTendersModal(); });
+  $("restartBtn").addEventListener("click", restart);
+
+  state = newState(); 
+  render(); 
+  requestAnimationFrame(loop);
+  checkOfflineEarnings();
+</script>
+</body>
+</html>
