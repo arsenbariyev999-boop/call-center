@@ -3,6 +3,8 @@
   "target": {
     "namespace": "android_app",
     "package_name": "io.github.arsenbariyev999_boop.twa",
-    "sha256_cert_fingerprints": []
+    "sha256_cert_fingerprints": [
+      "3E:5A:6D:77:18:05:32:B2:76:83:52:CD:B7:91:02:16:D2:3A:FB:6F:A9:7C:18:72:0D:39:D5:77:4A:27:E5:A9"
+    ]
   }
 }]
